@@ -40,7 +40,7 @@ coverage/
 public/css/output.css
 
 # Test artifacts
-test-results/
+#$test-results/
 
 # Personal notes
 txt.md
