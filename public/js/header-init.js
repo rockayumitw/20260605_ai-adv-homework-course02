@@ -8,13 +8,11 @@ document.addEventListener('DOMContentLoaded', function () {
       const user = Auth.getUser();
       let html = '';
       if (Auth.isAdmin()) {
-        html += '<a href="/admin/products" class="text-rose-primary hover:text-rose-dark">後台管理</a>';
+        html += '<a href="/admin/products" style="color:#C9A96E;font-size:13px;letter-spacing:1px;text-decoration:none;">後台管理</a>';
       }
-      html += '<span class="text-text-secondary">' + (user?.name || '') + '</span>';
-      html += '<button onclick="Auth.logout()" class="text-text-muted hover:text-rose-primary transition-colors">登出</button>';
+      html += '<span style="color:#7A9088;font-size:13px;letter-spacing:1px;">' + (user?.name || '') + '</span>';
+      html += '<button onclick="Auth.logout()" style="color:#7A9088;font-size:13px;letter-spacing:1px;background:transparent;border:none;cursor:pointer;" onmouseover="this.style.color=\'#C9A96E\'" onmouseout="this.style.color=\'#7A9088\'">登出</button>';
       authNav.innerHTML = html;
-    } else {
-      authNav.innerHTML = '<a href="/login" class="bg-rose-primary text-white px-4 py-1.5 rounded-full hover:bg-rose-dark transition-colors">登入</a>';
     }
   }
 
@@ -24,10 +22,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (cartBadge) {
     apiFetch('/api/cart').then(function (res) {
-      if (res && res.data && res.data.items && res.data.items.length > 0) {
-        cartBadge.textContent = res.data.items.length;
-        cartBadge.style.display = 'flex';
+      const count = (res && res.data && res.data.items) ? res.data.items.length : 0;
+      if (count > 0) {
+        cartBadge.textContent = count;
+        cartBadge.style.display = '';
+      } else {
+        cartBadge.style.display = 'none';
       }
-    }).catch(function () {});
+    }).catch(function () {
+      cartBadge.style.display = 'none';
+    });
   }
 });

@@ -1,0 +1,59 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(~/.npm/**)",
+      "Read(~/.npm/**)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(sudo *)",
+      "Bash(git push *)",
+      "Bash(git reset --hard *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/protect-files.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/auto-api-docs.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/auto-test.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "network": {
+      "allowLocalBinding": true,
+      "allowedDomains": [
+        "registry.npmjs.org",
+        "*.npmjs.org",
+        "*.github.com",
+        "github.com",
+        "*.githubusercontent.com",
+        "payment-stage.ecpay.com.tw",
+        "payment.ecpay.com.tw",
+        "localhost:*"
+      ]
+    }
+  }
+}

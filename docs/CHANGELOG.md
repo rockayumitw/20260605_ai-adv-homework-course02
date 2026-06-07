@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-06-07
+
+### Added
+- Playwright E2E 測試套件（`tests/e2e/`）
+- `playwright.config.js`：錄影（video: on）、截圖、trace 全開
+- `tests/e2e/checkout-ecpay.spec.js`：完整購物結帳流程（登入 → 加購物車 → 結帳 → 綠界 ATM 網路交易 → MockATM 完成）
+- `npm run test:e2e`、`npm run test:e2e:ui` 指令
+- `.env.example` 環境變數範例檔
+- `server.js` 獨立 HTTP server 入口（原 app.js 分離）
+
+### Changed
+- 全站 UI 重構：以 CSS custom properties + inline style 取代 Tailwind class，設計一致性提升
+- 首頁商品卡片、購物車、結帳、訂單列表、訂單詳情頁全面重新設計
+- Header 動態渲染邏輯優化（`public/js/header-init.js`）
+- 訂單列表頁（`orders.js`）分頁與狀態篩選改善
+
 ## [1.1.0] — 2026-05-26
 
 ### Added
