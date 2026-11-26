@@ -8,11 +8,11 @@ Node.js / Express REST API + EJS 前端，SQLite + JWT。本次作業在既有�
 |------|------|
 | GitHub 儲存庫 | https://github.com/rockayumitw/20260605_ai-adv-homework-course02 |
 | 使用的 AI Agent | Claude Code（模型：Sonnet 5.5） |
-| 挑戰等級 | 目標 LV3（各項實際完成狀態見下表） |
+| 挑戰等級 | **LV3**（各項完成狀態見下表） |
 | 作業系統 | Linux（GitHub Codespaces，Ubuntu） |
 | 新增或調整的環境變數 | `DATABASE_PATH`（選填，指定 SQLite 檔案或 `:memory:`，測試用）。其餘沿用 `.env.example`（`JWT_SECRET`、`ECPAY_*` 等），不含任何機密值 |
-| GitHub Actions 執行頁面 | _待補：push 後的 Actions 連結_ |
-| GitHub Actions 成功截圖 | _待補_ |
+| GitHub Actions 執行頁面 | https://github.com/rockayumitw/20260605_ai-adv-homework-course02/actions/runs/45784703704 （`main`，commit `60b5486`，結果：success） |
+| GitHub Actions 成功截圖 | [`_docs/github-actions-success.png`](_docs/github-actions-success.png)（見下方） |
 
 ### 完成狀態
 
@@ -21,8 +21,20 @@ Node.js / Express REST API + EJS 前端，SQLite + JWT。本次作業在既有�
 | LV1：Shipping 模組、訂單整合、前端介面、Unit Test、docs 與 `openapi.json` | 完成，`npm run test:unit` 通過 |
 | LV2：Integration Test（記憶體 SQLite） | 完成，`npm run test:integration` 通過 |
 | LV2：Postman Collection | 完成，`npm run postman` 可產生有效 JSON |
-| LV2：E2E Test | 完成。`tests/e2e/checkout-ecpay.spec.js` 已實跑通過（登入 → 結帳含配送 → 綠界網路 ATM／土地銀行 → 返回商店 → 訂單 `paid`），付款成功截圖在 `test-results/payment-success-returned.png`（不 commit） |
-| LV3：GitHub Actions（`.github/workflows/test.yml`） | 已建立；Actions 執行結果見上方連結 |
+| LV2：E2E Test | 完成。`tests/e2e/checkout-ecpay.spec.js` 已實跑通過（登入 → 結帳含配送 → 綠界網路 ATM／土地銀行 → 返回商店 → 訂單 `paid`），付款成功並返回站點後的截圖：[`_docs/payment-success-returned.png`](_docs/payment-success-returned.png)（見下方） |
+| LV3：GitHub Actions（`.github/workflows/test.yml`） | 完成，Unit 與 Integration 兩個步驟皆通過（見上方連結） |
+
+### 截圖
+
+**GitHub Actions 成功畫面**（Unit 與 Integration 測試皆通過）
+
+![GitHub Actions 成功畫面](_docs/github-actions-success.png)
+
+**E2E：綠界付款成功並返回站點後，訂單顯示「已付款」**
+
+![付款成功並返回站點](_docs/payment-success-returned.png)
+
+> 說明：Unit Test 與 Integration Test 放在專案既有的 `tests/` 資料夾（作業文字寫 `./test/`），指令與結果不受影響。
 
 ## 配送費用規則
 
