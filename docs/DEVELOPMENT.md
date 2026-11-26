@@ -39,6 +39,7 @@
 | `JWT_SECRET` | JWT 簽名密鑰 | 必填 | 無（server 啟動時會 throw） |
 | `PORT` | server 監聽埠號 | 選填 | 3001 |
 | `FRONTEND_URL` | CORS 允許的來源 | 選填 | `http://localhost:3001` |
+| `DATABASE_PATH` | SQLite 檔案路徑；`:memory:` 為記憶體資料庫（測試用） | 選填 | 專案根目錄 `database.sqlite` |
 | `NODE_ENV` | 環境識別 | 選填 | undefined（當值為 `test` 時 bcrypt rounds 降為 1） |
 | `ADMIN_EMAIL` | 種子管理員帳號 | 選填 | `admin@hexschool.com` |
 | `ADMIN_PASSWORD` | 種子管理員密碼 | 選填 | `12345678` |

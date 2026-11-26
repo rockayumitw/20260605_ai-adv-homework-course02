@@ -91,7 +91,7 @@ describe('ECPay 金流 API', () => {
       const { params } = res.body.data;
       expect(params.MerchantID).toBe('3002607');
       expect(params.PaymentType).toBe('aio');
-      expect(params.ChoosePayment).toBe('Credit');
+      expect(params.ChoosePayment).toBe('ALL');
       expect(params.EncryptType).toBe('1');
     });
 

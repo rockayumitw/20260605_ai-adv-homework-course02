@@ -10,7 +10,11 @@
 npm run dev:server    # 啟動開發伺服器（port 3001）
 npm run dev:css       # 監看 Tailwind CSS 變更
 npm start             # 建構 CSS 後啟動 server
-npm test              # 執行所有測試（Vitest）
+npm test              # unit + integration（Vitest）
+npm run test:unit     # Shipping 單元測試 + 原有 API 測試（暫存 SQLite）
+npm run test:integration  # 訂單流程 Integration Test（記憶體 SQLite）
+npm run test:e2e      # Playwright E2E（需先啟動 server，使用 localhost:3001）
+npm run postman       # 產生 openapi.json 與 Postman Collection
 npm run openapi       # 產生 OpenAPI JSON 文件
 ```
 
@@ -19,6 +23,7 @@ npm run openapi       # 產生 OpenAPI JSON 文件
 - 所有 API 回應必須使用統一格式：`{ data, error, message }`，`error` 為 null 或大寫錯誤碼字串
 - 購物車支援雙模式認證：JWT（已登入）或 `X-Session-Id` 標頭（匿名），若 Bearer token 無效則直接回 401，不 fallback
 - 訂單建立使用 SQLite transaction，包含：新增訂單、新增訂單商品、扣減庫存、清空購物車
+- 運費規則只放在 `src/utils/shipping.js`；`total_amount = subtotal + shipping_fee`，前端不得自行複製運費規則
 - `order_items` 中的 `product_name` 和 `product_price` 為非正規化欄位，記錄下單時的商品資訊
 - 功能開發請使用 `docs/plans/` 記錄計畫；完成後移至 `docs/plans/archive/`
 

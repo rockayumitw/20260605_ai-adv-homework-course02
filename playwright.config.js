@@ -9,19 +9,15 @@ module.exports = defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
+    // 直接使用已啟動的專案（npm run dev:server / npm start），不另外啟動測試伺服器
     baseURL: 'http://localhost:3001',
-    headless: false,
-    trace: 'on',
-    screenshot: 'on',
-    video: 'on',
+    // 預設 headless（Codespaces 沒有顯示器）；要看畫面時：HEADED=1 npm run test:e2e
+    headless: !process.env.HEADED,
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
-  webServer: {
-    command: 'node server.js',
-    url: 'http://localhost:3001',
-    reuseExistingServer: !process.env.CI,
-    env: { JWT_SECRET: 'e2e-test-secret' },
-  },
 });

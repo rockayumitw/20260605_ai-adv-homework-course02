@@ -18,14 +18,18 @@ project-root/
 │   │   ├── adminMiddleware.js     # 確認 req.user.role === 'admin'
 │   │   ├── sessionMiddleware.js   # 從 X-Session-Id header 注入 req.sessionId
 │   │   └── errorHandler.js        # 全域 Express 錯誤處理
-│   └── routes/
-│       ├── authRoutes.js          # /api/auth — 註冊、登入、個人資料
-│       ├── productRoutes.js       # /api/products — 商品列表、詳情（公開）
-│       ├── cartRoutes.js          # /api/cart — 購物車 CRUD（雙模式認證）
-│       ├── orderRoutes.js         # /api/orders — 訂單建立、列表、詳情、付款
-│       ├── adminProductRoutes.js  # /api/admin/products — 商品管理（admin）
-│       ├── adminOrderRoutes.js    # /api/admin/orders — 訂單管理（admin）
-│       └── pageRoutes.js          # 頁面渲染路由
+│   ├── routes/
+│   │   ├── authRoutes.js          # /api/auth — 註冊、登入、個人資料
+│   │   ├── productRoutes.js       # /api/products — 商品列表、詳情（公開）
+│   │   ├── cartRoutes.js          # /api/cart — 購物車 CRUD（雙模式認證）
+│   │   ├── orderRoutes.js         # /api/orders — 訂單建立、列表、詳情、付款
+│   │   ├── adminProductRoutes.js  # /api/admin/products — 商品管理（admin）
+│   │   ├── adminOrderRoutes.js    # /api/admin/orders — 訂單管理（admin）
+│   │   ├── ecpayRoutes.js         # /api/ecpay — 綠界導回與 notify
+│   │   ├── shippingRoutes.js      # /api/shipping — 運費試算（公開）
+│   │   └── pageRoutes.js          # 頁面渲染路由
+│   ├── services/ecpayService.js   # ECPay CheckMacValue、QueryTradeInfo
+│   └── utils/shipping.js          # 運費計算（獨立模組，可單獨測試）
 ├── views/
 │   ├── layouts/
 │   │   ├── front.ejs              # 前台 layout（nav + footer）
@@ -43,9 +47,15 @@ project-root/
 │   ├── js/header-init.js          # header 動態渲染
 │   ├── js/notification.js         # toast 通知
 │   └── js/pages/                  # 各頁面專屬 JS
-└── tests/
-    ├── setup.js                   # 測試輔助函式
-    └── *.test.js                  # 各功能測試
+├── tests/
+│   ├── setup.js                   # 測試輔助函式
+│   ├── globalSetupUnit.js         # unit 測試前重建暫存 SQLite
+│   ├── unit/shipping.test.js      # Shipping 單元測試
+│   ├── integration/               # Integration Test（記憶體 SQLite）
+│   ├── e2e/                       # Playwright E2E（使用已啟動的 localhost:3001）
+│   └── *.test.js                  # 原有 API 測試（併入 npm run test:unit）
+├── scripts/generate-postman.js    # openapi.json → Postman Collection（輸出到 postman/，不 commit）
+└── .github/workflows/test.yml     # CI：unit + integration
 ```
 
 ## 啟動流程
@@ -53,7 +63,7 @@ project-root/
 1. `server.js` 載入 `.env`，require `app.js`
 2. `app.js` require `src/database.js` → 建表 + seed admin user + seed 8 款商品
 3. Express 掛載 middleware（CORS → json → urlencoded → sessionMiddleware）
-4. 掛載 6 個 API 路由 + pageRoutes
+4. 掛載 API 路由（auth、admin products/orders、products、cart、orders、ecpay、shipping）+ pageRoutes
 5. `server.js` 呼叫 `app.listen(PORT)`
 
 ## API 路由總覽
@@ -69,7 +79,8 @@ project-root/
 | POST | /api/cart | JWT/Session | 加入商品（已在購物車則累加數量） |
 | PATCH | /api/cart/:itemId | JWT/Session | 修改數量（直接設定，不累加） |
 | DELETE | /api/cart/:itemId | JWT/Session | 移除購物車項目 |
-| POST | /api/orders | JWT | 從購物車建立訂單（transaction） |
+| POST | /api/shipping/quote | 無 | 試算運費（subtotal、shippingMethod、isRemote、isSameDay） |
+| POST | /api/orders | JWT | 從購物車建立訂單（transaction，含配送方式與運費） |
 | GET | /api/orders | JWT | 目前使用者訂單列表（DESC 排序） |
 | GET | /api/orders/:id | JWT | 訂單詳情（含 order_items） |
 | PATCH | /api/orders/:id/pay | JWT | 模擬付款（action: success/fail） |
@@ -151,7 +162,12 @@ orders (
   recipient_name TEXT NOT NULL,
   recipient_email TEXT NOT NULL,
   recipient_address TEXT NOT NULL,
-  total_amount INTEGER NOT NULL, -- 新台幣整數
+  subtotal INTEGER NOT NULL DEFAULT 0,        -- 商品小計
+  shipping_method TEXT NOT NULL DEFAULT 'home', -- CHECK: 'home' | 'convenience'
+  shipping_fee INTEGER NOT NULL DEFAULT 0,    -- 運費（含偏遠／急件附加費）
+  is_remote INTEGER NOT NULL DEFAULT 0,       -- 0 | 1
+  is_same_day INTEGER NOT NULL DEFAULT 0,     -- 0 | 1
+  total_amount INTEGER NOT NULL, -- 新台幣整數，= subtotal + shipping_fee
   status TEXT NOT NULL DEFAULT 'pending',  -- CHECK: 'pending' | 'paid' | 'failed'
   created_at TEXT
 )
@@ -169,7 +185,7 @@ order_items (
 ## 訂單建立 Transaction
 
 `POST /api/orders` 使用 `db.transaction()` 確保以下操作全部成功或全部回滾：
-1. INSERT orders
+1. INSERT orders（含 subtotal、shipping_method、shipping_fee、is_remote、is_same_day）
 2. INSERT order_items（逐一插入，保留下單時商品資訊）
 3. UPDATE products SET stock = stock - quantity（每個商品扣庫存）
 4. DELETE cart_items WHERE user_id = ?（清空購物車）

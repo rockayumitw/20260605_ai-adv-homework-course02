@@ -1,4 +1,4 @@
-const { createApp, ref, computed, onMounted } = Vue;
+const { createApp, ref, computed, onMounted, watch } = Vue;
 
 createApp({
   setup() {
@@ -7,7 +7,15 @@ createApp({
     const loading = ref(true);
     const submitting = ref(false);
     const cartItems = ref([]);
-    const form = ref({ recipientName: '', recipientEmail: '', recipientAddress: '' });
+    const form = ref({
+      recipientName: '',
+      recipientEmail: '',
+      recipientAddress: '',
+      shippingMethod: 'home',
+      isRemote: false,
+      isSameDay: false
+    });
+    const shippingFee = ref(0);
     const errors = ref({});
 
     const cartTotal = computed(function () {
@@ -15,6 +23,29 @@ createApp({
         return sum + item.product.price * item.quantity;
       }, 0);
     });
+
+    // 運費規則集中在後端 src/utils/shipping.js，前端只負責呼叫試算
+    async function refreshShipping() {
+      try {
+        const res = await apiFetch('/api/shipping/quote', {
+          method: 'POST',
+          body: JSON.stringify({
+            subtotal: cartTotal.value,
+            shippingMethod: form.value.shippingMethod,
+            isRemote: form.value.isRemote,
+            isSameDay: form.value.isSameDay
+          })
+        });
+        shippingFee.value = res.data.shippingFee;
+      } catch (err) {
+        Notification.show(err?.data?.message || '運費試算失敗', 'error');
+      }
+    }
+
+    watch(
+      function () { return [form.value.shippingMethod, form.value.isRemote, form.value.isSameDay]; },
+      refreshShipping
+    );
 
     function validate() {
       errors.value = {};
@@ -57,9 +88,10 @@ createApp({
         window.location.href = '/cart';
         return;
       }
+      await refreshShipping();
       loading.value = false;
     });
 
-    return { loading, submitting, cartItems, form, errors, cartTotal, submitOrder };
+    return { loading, submitting, cartItems, form, errors, cartTotal, shippingFee, submitOrder };
   }
 }).mount('#app');

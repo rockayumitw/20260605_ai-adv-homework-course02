@@ -39,8 +39,11 @@ coverage/
 .claude/*.local.json
 public/css/output.css
 
-# Test artifacts
-#$test-results/
-
 # Personal notes
 txt.md
+
+# Test / generated artifacts
+tests/.tmp/
+test-results/
+playwright-report/
+postman/

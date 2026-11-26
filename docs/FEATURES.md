@@ -76,14 +76,18 @@
 ### 建立訂單（POST /api/orders）
 
 需 JWT。請求 body（必填）：`recipientName`、`recipientEmail`、`recipientAddress`。
+選填（配送，見下方「配送費用」）：`shippingMethod`（`home` | `convenience`，預設 `home`）、`isRemote`（布林，預設 false）、`isSameDay`（布林，預設 false）。
 
 前置驗證：
 1. `recipientEmail` 格式驗證（regex）
-2. 購物車不可為空（400 CART_EMPTY）
-3. 所有商品庫存充足（400 STOCK_INSUFFICIENT，回傳不足商品名稱列表）
+2. 配送參數合法（`shippingMethod` 只能是 `home`／`convenience`，`isRemote`／`isSameDay` 必須為布林，否則 400 VALIDATION_ERROR）
+3. 購物車不可為空（400 CART_EMPTY）
+4. 所有商品庫存充足（400 STOCK_INSUFFICIENT，回傳不足商品名稱列表）
+
+金額：`subtotal` = 各商品 `price × quantity` 加總；`shipping_fee` 由 `src/utils/shipping.js` 計算；`total_amount = subtotal + shipping_fee`。
 
 以 **SQLite transaction** 執行：
-1. INSERT orders（產生 `ORD-YYYYMMDD-XXXXX` 格式的 order_no）
+1. INSERT orders（產生 `ORD-YYYYMMDD-XXXXX` 格式的 order_no，並寫入 subtotal、shipping_method、shipping_fee、is_remote、is_same_day）
 2. INSERT order_items（複製商品名稱、價格到 order_items，保留歷史快照）
 3. UPDATE products 扣減庫存
 4. DELETE cart_items 清空購物車
@@ -97,6 +101,38 @@
 只有 `status = 'pending'` 的訂單可付款，否則回 400 INVALID_STATUS。
 - `action: 'success'` → status 變為 `'paid'`
 - `action: 'fail'` → status 變為 `'failed'`
+
+---
+
+## 配送費用（Shipping）
+
+**狀態：完成**
+
+運費邏輯集中在 `src/utils/shipping.js`（與 Express／DB 無關，可獨立測試）。
+
+| 條件 | 費用 |
+|------|------|
+| 宅配（`home`）基本運費 | 120 元 |
+| 超商取貨（`convenience`） | 60 元 |
+| 商品小計 ≥ 1,500 元 | 免基本運費（1,499 元仍須收費） |
+| 偏遠地區（`isRemote`） | 加收 200 元 |
+| 當日急件（`isSameDay`） | 加收 250 元 |
+
+計算規則：
+- 附加費（偏遠、急件）對兩種配送方式皆適用，可同時成立。
+- 滿額免運**只免基本運費**，附加費照收。例：小計 1,500、宅配、偏遠 + 急件 → 運費 450。
+- `shippingFee = baseFee + remoteFee + sameDayFee`。
+
+### 試算運費（POST /api/shipping/quote）
+
+公開端點，供結帳頁即時顯示運費。body：`subtotal`（非負整數，必填）、`shippingMethod`（預設 `home`）、`isRemote`、`isSameDay`。
+回傳 `{ method, baseFee, remoteFee, sameDayFee, shippingFee, total }`；參數不合法回 400 VALIDATION_ERROR。
+
+### 前端
+
+- 結帳頁（`/checkout`）：配送方式單選、偏遠地區與當日急件勾選；運費與合計即時由 quote 端點取得。
+- 購物車頁只顯示商品合計（運費於結帳時依配送方式計算）。
+- 訂單詳情頁顯示配送方式、附加條件與運費。
 
 ---
 

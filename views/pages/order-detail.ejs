@@ -84,11 +84,11 @@
           <div style="display:flex;flex-direction:column;gap:0.65rem;margin-bottom:0.75rem;">
             <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
               <span style="color:#7A9088;">商品小計</span>
-              <span style="color:#F0EAD8;">NT$ {{ (order.total_amount - 120).toLocaleString() }}</span>
+              <span style="color:#F0EAD8;">NT$ {{ order.subtotal.toLocaleString() }}</span>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
-              <span style="color:#7A9088;">運費</span>
-              <span style="color:#F0EAD8;">NT$ 120</span>
+              <span style="color:#7A9088;">運費（{{ order.shipping_method === 'convenience' ? '超商取貨' : '宅配' }}{{ order.is_remote ? '・偏遠' : '' }}{{ order.is_same_day ? '・當日急件' : '' }}）</span>
+              <span style="color:#F0EAD8;">{{ order.shipping_fee === 0 ? '免運' : 'NT$ ' + order.shipping_fee.toLocaleString() }}</span>
             </div>
           </div>
           <div style="height:1px;background:#2A3D33;margin-bottom:0.75rem;"></div>

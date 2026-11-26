@@ -3,7 +3,8 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 
-const dbPath = path.join(__dirname, '..', 'database.sqlite');
+// DATABASE_PATH 可指定其他 SQLite 檔或 ':memory:'（測試用，避免動到專案的 database.sqlite）
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '..', 'database.sqlite');
 const db = new Database(dbPath);
 
 // Enable WAL mode for better performance
@@ -50,6 +51,11 @@ function initializeDatabase() {
       recipient_name TEXT NOT NULL,
       recipient_email TEXT NOT NULL,
       recipient_address TEXT NOT NULL,
+      subtotal INTEGER NOT NULL DEFAULT 0,
+      shipping_method TEXT NOT NULL DEFAULT 'home' CHECK(shipping_method IN ('home', 'convenience')),
+      shipping_fee INTEGER NOT NULL DEFAULT 0,
+      is_remote INTEGER NOT NULL DEFAULT 0,
+      is_same_day INTEGER NOT NULL DEFAULT 0,
       total_amount INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'paid', 'failed')),
       ecpay_merchant_trade_no TEXT,
@@ -68,9 +74,30 @@ function initializeDatabase() {
     );
   `);
 
+  migrateOrdersShipping();
+
   // Seed data
   seedAdminUser();
   seedProducts();
+}
+
+// 舊版資料庫的 orders 沒有運費欄位時補上（CREATE TABLE IF NOT EXISTS 不會改既有表）
+function migrateOrdersShipping() {
+  const columns = db.prepare('PRAGMA table_info(orders)').all().map((c) => c.name);
+  const additions = [
+    ['subtotal', 'INTEGER NOT NULL DEFAULT 0'],
+    ['shipping_method', "TEXT NOT NULL DEFAULT 'home'"],
+    ['shipping_fee', 'INTEGER NOT NULL DEFAULT 0'],
+    ['is_remote', 'INTEGER NOT NULL DEFAULT 0'],
+    ['is_same_day', 'INTEGER NOT NULL DEFAULT 0'],
+  ];
+  for (const [name, definition] of additions) {
+    if (!columns.includes(name)) {
+      db.exec(`ALTER TABLE orders ADD COLUMN ${name} ${definition}`);
+    }
+  }
+  // 舊訂單沒有 subtotal：以現有 total_amount 回填（當時沒有運費）
+  db.prepare('UPDATE orders SET subtotal = total_amount WHERE subtotal = 0 AND shipping_fee = 0').run();
 }
 
 function seedAdminUser() {

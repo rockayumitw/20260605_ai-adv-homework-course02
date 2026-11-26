@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const db = require('../database');
 const authMiddleware = require('../middleware/authMiddleware');
 const ecpayService = require('../services/ecpayService');
+const { calculateShipping, isValidMethod } = require('../utils/shipping');
 
 const router = express.Router();
 
@@ -38,6 +39,19 @@ function generateOrderNo() {
  *                 format: email
  *               recipientAddress:
  *                 type: string
+ *               shippingMethod:
+ *                 type: string
+ *                 enum: [home, convenience]
+ *                 default: home
+ *                 description: 配送方式（home 宅配 120 元、convenience 超商取貨 60 元；小計滿 1500 免基本運費）
+ *               isRemote:
+ *                 type: boolean
+ *                 default: false
+ *                 description: 偏遠地區，加收 200 元
+ *               isSameDay:
+ *                 type: boolean
+ *                 default: false
+ *                 description: 當日急件，加收 250 元
  *     responses:
  *       201:
  *         description: 訂單建立成功
@@ -53,8 +67,21 @@ function generateOrderNo() {
  *                       type: string
  *                     order_no:
  *                       type: string
+ *                     subtotal:
+ *                       type: integer
+ *                       description: 商品小計
+ *                     shipping_method:
+ *                       type: string
+ *                     shipping_fee:
+ *                       type: integer
+ *                       description: 運費（含附加費）
+ *                     is_remote:
+ *                       type: boolean
+ *                     is_same_day:
+ *                       type: boolean
  *                     total_amount:
  *                       type: integer
+ *                       description: 訂單總額（subtotal + shipping_fee）
  *                     status:
  *                       type: string
  *                     items:
@@ -76,10 +103,13 @@ function generateOrderNo() {
  *                 message:
  *                   type: string
  *       400:
- *         description: 購物車為空或庫存不足或收件資訊缺失
+ *         description: 購物車為空、庫存不足、收件資訊缺失或配送參數不合法
  */
 router.post('/', (req, res) => {
   const { recipientName, recipientEmail, recipientAddress } = req.body;
+  const shippingMethod = req.body.shippingMethod === undefined ? 'home' : req.body.shippingMethod;
+  const isRemote = req.body.isRemote === undefined ? false : req.body.isRemote;
+  const isSameDay = req.body.isSameDay === undefined ? false : req.body.isSameDay;
   const userId = req.user.userId;
 
   if (!recipientName || !recipientEmail || !recipientAddress) {
@@ -96,6 +126,14 @@ router.post('/', (req, res) => {
       data: null,
       error: 'VALIDATION_ERROR',
       message: 'Email 格式不正確'
+    });
+  }
+
+  if (!isValidMethod(shippingMethod) || typeof isRemote !== 'boolean' || typeof isSameDay !== 'boolean') {
+    return res.status(400).json({
+      data: null,
+      error: 'VALIDATION_ERROR',
+      message: '配送方式必須為 home 或 convenience，isRemote 與 isSameDay 必須為布林值'
     });
   }
 
@@ -127,10 +165,12 @@ router.post('/', (req, res) => {
     });
   }
 
-  // Calculate total
-  const totalAmount = cartItems.reduce(
+  // Calculate subtotal, shipping and total
+  const subtotal = cartItems.reduce(
     (sum, item) => sum + item.product_price * item.quantity, 0
   );
+  const shipping = calculateShipping({ subtotal, method: shippingMethod, isRemote, isSameDay });
+  const totalAmount = subtotal + shipping.shippingFee;
 
   const orderId = uuidv4();
   const orderNo = generateOrderNo();
@@ -138,9 +178,13 @@ router.post('/', (req, res) => {
   // Transaction: create order, order items, deduct stock, clear cart
   const createOrder = db.transaction(() => {
     db.prepare(
-      `INSERT INTO orders (id, order_no, user_id, recipient_name, recipient_email, recipient_address, total_amount)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).run(orderId, orderNo, userId, recipientName, recipientEmail, recipientAddress, totalAmount);
+      `INSERT INTO orders (id, order_no, user_id, recipient_name, recipient_email, recipient_address,
+                           subtotal, shipping_method, shipping_fee, is_remote, is_same_day, total_amount)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      orderId, orderNo, userId, recipientName, recipientEmail, recipientAddress,
+      subtotal, shippingMethod, shipping.shippingFee, isRemote ? 1 : 0, isSameDay ? 1 : 0, totalAmount
+    );
 
     const insertItem = db.prepare(
       `INSERT INTO order_items (id, order_id, product_id, product_name, product_price, quantity)
@@ -168,6 +212,11 @@ router.post('/', (req, res) => {
     data: {
       id: order.id,
       order_no: order.order_no,
+      subtotal: order.subtotal,
+      shipping_method: order.shipping_method,
+      shipping_fee: order.shipping_fee,
+      is_remote: order.is_remote === 1,
+      is_same_day: order.is_same_day === 1,
       total_amount: order.total_amount,
       status: order.status,
       items: orderItems,
@@ -265,6 +314,12 @@ router.get('/', (req, res) => {
  *                       type: string
  *                     recipient_address:
  *                       type: string
+ *                     subtotal:
+ *                       type: integer
+ *                     shipping_method:
+ *                       type: string
+ *                     shipping_fee:
+ *                       type: integer
  *                     total_amount:
  *                       type: integer
  *                     status:

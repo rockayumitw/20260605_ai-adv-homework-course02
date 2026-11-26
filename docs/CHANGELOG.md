@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### Added
+- 配送費用模組 `src/utils/shipping.js`（宅配 120／超商 60／滿 1,500 免基本運費／偏遠 +200／當日急件 +250）
+- `POST /api/shipping/quote` 運費試算端點
+- `POST /api/orders` 支援 `shippingMethod`、`isRemote`、`isSameDay`，回傳 `subtotal`、`shipping_fee`；`total_amount = subtotal + shipping_fee`
+- `orders` 表新增 `subtotal`、`shipping_method`、`shipping_fee`、`is_remote`、`is_same_day`（舊資料庫啟動時自動 ALTER 補欄位）
+- 結帳頁配送方式／偏遠／急件選項；訂單詳情頁顯示運費
+- 環境變數 `DATABASE_PATH`（指定 SQLite 檔或 `:memory:`）
+- Unit Test（`tests/unit/shipping.test.js`）、Integration Test（`tests/integration/`，記憶體 SQLite）
+- `npm run test:unit`、`npm run test:integration`、`npm run postman`；`scripts/generate-postman.js`
+- GitHub Actions：`.github/workflows/test.yml`（unit + integration）
+
+### Changed
+- 原有測試改用暫存 SQLite 並由 vitest 設定注入測試環境變數，不再寫入 `database.sqlite`、不需 `.env`
+- E2E 改用已啟動的 `localhost:3001`（移除 `webServer`），預設 headless；流程對齊作業（含配送、網路 ATM、返回商店、驗證 paid）
+- 購物車頁不再顯示寫死的運費（改為結帳時計算）
+- `tests/ecpay.test.js` 的 `ChoosePayment` 斷言更新為 `ALL`（與現行實作一致）
+
+### Removed
+- 不再追蹤 `test-results/` 與 Playwright 產物（改列入 `.gitignore`）
+
 ## [1.2.0] — 2026-06-07
 
 ### Added

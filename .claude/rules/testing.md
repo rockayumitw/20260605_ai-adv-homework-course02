@@ -50,18 +50,19 @@ describe('Feature', () => {
 
 測試不可並行（`fileParallelism: false`），共用同一 SQLite，順序固定：
 
-1. `tests/auth.test.js`
-2. `tests/products.test.js`
-3. `tests/cart.test.js`
-4. `tests/orders.test.js`
-5. `tests/adminProducts.test.js`
-6. `tests/adminOrders.test.js`
-7. `tests/ecpay.test.js`
+1. `tests/unit/shipping.test.js`
+2. `tests/auth.test.js`
+3. `tests/products.test.js`
+4. `tests/cart.test.js`
+5. `tests/orders.test.js`
+6. `tests/adminProducts.test.js`
+7. `tests/adminOrders.test.js`
+8. `tests/ecpay.test.js`
 
-**新增測試檔案必須加入 `vitest.config.js` 的 `sequence.files` 陣列**，並選擇適當插入位置（考量資料依賴關係）。
+**新增 unit 測試檔案必須加入 `vitest.config.js` 的 `include` 與 `sequence.files`**，並選擇適當插入位置（考量資料依賴關係）。Integration 測試放 `tests/integration/*.integration.test.js`（`vitest.integration.config.js`，記憶體 SQLite）。
 
 ## 常見陷阱
 
 - 測試不做 `afterAll` cleanup，資料會殘留至下一個測試檔案
 - 不要任意調換 `vitest.config.js` 中的測試順序
-- 若需單獨跑一個測試：`npx vitest run tests/cart.test.js`
+- 若需單獨跑一個測試：`npx vitest run --config vitest.config.js tests/cart.test.js`

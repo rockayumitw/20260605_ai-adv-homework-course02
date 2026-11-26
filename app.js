@@ -34,6 +34,7 @@ app.use('/api/products', require('./src/routes/productRoutes'));
 app.use('/api/cart', require('./src/routes/cartRoutes'));
 app.use('/api/orders', require('./src/routes/orderRoutes'));
 app.use('/api/ecpay', require('./src/routes/ecpayRoutes'));
+app.use('/api/shipping', require('./src/routes/shippingRoutes'));
 
 // Page Routes
 app.use('/', require('./src/routes/pageRoutes'));

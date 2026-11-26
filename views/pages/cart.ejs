@@ -62,7 +62,7 @@
           </div>
           <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
             <span style="color:#7A9088;">運費</span>
-            <span style="color:#F0EAD8;">{{ total >= 500 ? '免運' : 'NT$ 150' }}</span>
+            <span style="color:#7A9088;">結帳時依配送方式計算</span>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
             <span style="color:#7A9088;">優惠折扣</span>
@@ -71,9 +71,9 @@
         </div>
         <div style="height:1px;background:#2A3D33;margin-bottom:1rem;"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-          <span style="font-size:0.9rem;font-weight:500;color:#F0EAD8;">合計</span>
+          <span style="font-size:0.9rem;font-weight:500;color:#F0EAD8;">商品合計</span>
           <span class="font-display" style="font-family:'Newsreader',serif;font-size:1.5rem;color:#C9A96E;">
-            NT$ {{ (total + (total >= 500 ? 0 : 150)).toLocaleString() }}
+            NT$ {{ total.toLocaleString() }}
           </span>
         </div>
         <button @click="goCheckout" class="btn-gold" style="width:100%;">前往結帳</button>
